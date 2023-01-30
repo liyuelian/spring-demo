@@ -29,7 +29,7 @@ public class MyBeanPostProcessor implements BeanPostProcessor {
                 + bean.getClass() + "，bean的名字=" + beanName);
         //实现aop，返回代理对象，即对bean进行包装
         //先写死，后面我们可以通过注解的方式更加灵活运用
-        if ("smartDog".equals(beanName)) {
+        if ("smartDog".equals(beanName)) {//1.通过注解看看当前这个类是否已经被代理 [需要事先在Map中保存代理关系]
             //使用jdk的动态代理，返回bean的代理对象
             Object proxyInstance = Proxy.newProxyInstance(MyBeanPostProcessor.class.getClassLoader(),
                     bean.getClass().getInterfaces(), new InvocationHandler() {
@@ -40,13 +40,13 @@ public class MyBeanPostProcessor implements BeanPostProcessor {
                             //假设我们要进行前置,返回通知处理的方法是getSum()
                             //（原生的spring的通知方法是通过注解来获取的）
                             //这里我们后面再通过注解来做得更加灵活
-                            if ("getSum".equals(method.getName())) {
+                            if ("getSum".equals(method.getName())) {//2.通过注解查看当前类的哪个方法已经被代理 [需要事先在Map中保存代理关系]
                                 //前置通知
-                                SmartAnimalAspect.showBeginLog();
+                                SmartAnimalAspect.showBeginLog();//3.通过@Before注解查看当前类的这个方法已经被切面类的哪个方法进行@Before切入 [需要事先在Map中保存代理关系]
                                 //目标方法
                                 result = method.invoke(bean, args);
                                 //返回通知
-                                SmartAnimalAspect.showSuccessLog();
+                                SmartAnimalAspect.showSuccessLog();//4.通过@AfterReturning注解查看当前类的这个方法已经被切面类的哪个方法进行@AfterReturning切入 [需要事先在Map中保存代理关系]
                             } else {
                                 result = method.invoke(bean, args);
                             }
