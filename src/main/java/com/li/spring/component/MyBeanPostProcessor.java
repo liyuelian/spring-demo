@@ -3,6 +3,10 @@ package com.li.spring.component;
 import com.li.spring.annotation.Component;
 import com.li.spring.processor.BeanPostProcessor;
 
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
+
 /**
  * @author 李
  * @version 1.0
@@ -16,13 +20,43 @@ public class MyBeanPostProcessor implements BeanPostProcessor {
     public Object postProcessBeforeInitialization(Object bean, String beanName) {
         System.out.println("后置处理器MyBeanPostProcessor的 Before()方法被调用，bean类型="
                 + bean.getClass() + "，bean的名字=" + beanName);
-        return null;
+        return bean;
     }
 
     @Override
     public Object postProcessAfterInitialization(Object bean, String beanName) {
         System.out.println("后置处理器MyBeanPostProcessor的 After()方法被调用，bean类型="
                 + bean.getClass() + "，bean的名字=" + beanName);
-        return null;
+        //实现aop，返回代理对象，即对bean进行包装
+        //先写死，后面我们可以通过注解的方式更加灵活运用
+        if ("smartDog".equals(beanName)) {
+            //使用jdk的动态代理，返回bean的代理对象
+            Object proxyInstance = Proxy.newProxyInstance(MyBeanPostProcessor.class.getClassLoader(),
+                    bean.getClass().getInterfaces(), new InvocationHandler() {
+                        @Override
+                        public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+                            System.out.println("method=" + method.getName());
+                            Object result = null;
+                            //假设我们要进行前置,返回通知处理的方法是getSum()
+                            //（原生的spring的通知方法是通过注解来获取的）
+                            //这里我们后面再通过注解来做得更加灵活
+                            if ("getSum".equals(method.getName())) {
+                                //前置通知
+                                SmartAnimalAspect.showBeginLog();
+                                //目标方法
+                                result = method.invoke(bean, args);
+                                //返回通知
+                                SmartAnimalAspect.showSuccessLog();
+                            } else {
+                                result = method.invoke(bean, args);
+                            }
+                            return result;
+                        }
+                    });
+            //如果bean需要返回代理对象，这里就直接return ProxyInstance
+            return proxyInstance;
+        }
+        //如果不需要AOP，直接返回 bean
+        return bean;
     }
 }
